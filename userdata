@@ -1,0 +1,44 @@
+#cloud-config
+
+users:
+  - name: shell
+    groups: [ wheel ]
+    sudo: [ "ALL=(ALL) NOPASSWD:ALL" ]
+    shell: /bin/bash
+    ssh-authorized-keys:
+    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDZOLtZWYuPCUIWuyePJK1VYAYFzDMI65G0JUlRKoVlnb9GIu2q5eY8e8XLxkFb4nvF5ofxaijRSUgoqbDmD2X9YjiLlMuppk+Omu7/4XLKI1+myCfFbACI0piJGIqjKiC8T+BTx8R4wLs4UluJ6Q/3L7IwSkfB/0dsNoEPrq53gCOLpXh4AJix5aBBFuod5jgH8BW4w2odI8uY9z6lvTvvvLAjkUSZvWky/C4Mc04aLyJXbohxNjdK2TH3FC2NpINSaJ/SY8a/jtDDAUvXYErXGDirDNacOt9RS6AO3vD6eeB6TCIs1kn8io2OLr+CAJ9vpbA+J6y1z9qbWit/d0eX crsmithdev@Chriss-MBP
+
+apt:
+  sources:
+    docker:
+      keyid: "0EBFCD88"
+      source: "deb https://download.docker.com/linux/ubuntu xenial stable"
+    kubernetes:
+      keyid: "BA07F4FB"
+      source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+
+packages:
+  - docker-ce=17.03.2~ce-0~ubuntu-xenial
+  - kubelet
+  - kubeadm
+  - kubectl
+
+runcmd:
+  - ufw default deny incoming
+  - ufw allow ssh
+  - ufw allow 6443
+  - ufw allow 2379
+  - ufw allow 2380
+  - ufw allow 10250
+  - ufw allow 10251
+  - ufw allow 10252
+  - ufw allow 10255
+  - ufw allow 30000:32767/tcp
+  - ufw enable
+  - kubeadm init --pod-network-cidr=10.244.0.0/16
+  - mkdir -p /home/shell/.kube
+  - chown $(id -u shell):$(id -g shell) /home/shell/.kube
+  - cp -i /etc/kubernetes/admin.conf /home/shell/.kube/config
+  - chown $(id -u shell):$(id -g shell) /home/shell/.kube/config
+  - sleep 30
+  - kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.10.0/Documentation/kube-flannel.yml
